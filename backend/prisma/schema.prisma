@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String
+  firstName       String
+  lastName        String
+  role            UserRole  @default(STUDENT)
+  institutionCode String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastLoginAt     DateTime?
+
+  subjects        Subject[]
+  attendanceLogs AttendanceRecord[]
+
+  @@index([email])
+}
+
+enum UserRole {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+model Subject {
+  id              String            @id @default(cuid())
+  code            String
+  name            String
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  threshold       Int               @default(75)
+  attended        Int               @default(0)
+  total           Int               @default(0)
+  status          SubjectStatus     @default(SAFE)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  attendanceLogs AttendanceRecord[]
+
+  @@unique([userId, code])
+  @@index([userId])
+}
+
+enum SubjectStatus {
+  SAFE
+  CRITICAL
+  DANGER
+}
+
+model AttendanceRecord {
+  id         String    @id @default(cuid())
+  subjectId  String
+  subject    Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date       DateTime
+  attended   Boolean
+  type       String    @default("LECTURE")
+  remarks    String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([subjectId])
+  @@index([userId])
+}
