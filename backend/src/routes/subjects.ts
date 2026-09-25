@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { attendanceLogs, subjects } from '../data/store.js';
 import { attendanceCalculator } from '../lib/calculationEngine.js';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth.js';
+import { broadcastSubjectUpdate } from '../socket.js';
 
 const subjectSchema = z.object({
   code: z.string().min(2),
@@ -84,6 +85,8 @@ router.post('/:subjectId/attendance', requireAuth, (req: AuthenticatedRequest, r
     subject.total > 0 ? (subject.attended / subject.total) * 100 : 0,
     subject.threshold,
   );
+
+  broadcastSubjectUpdate(req.user!.id, subject);
 
   return res.status(201).json({ record, subject });
 });

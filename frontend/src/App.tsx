@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, AlertTriangle, GraduationCap, LogOut, Plus, TrendingUp } from 'lucide-react';
+import { AttendanceLogger } from './components/AttendanceLogger';
+import { useSocket } from './hooks/useSocket';
 import { useAuthStore } from './store/authStore';
 import { useSubjectStore } from './store/subjectStore';
 
 function App() {
   const { user, token, login, register, logout, isLoading, error } = useAuthStore();
-  const { dashboard, subjects, fetchDashboard, addSubject, addAttendance } = useSubjectStore();
+  const { dashboard, subjects, fetchDashboard, addSubject } = useSubjectStore();
+
+  useSocket();
 
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('student@attendio.dev');
@@ -16,12 +20,6 @@ function App() {
   const [subjectCode, setSubjectCode] = useState('CS201');
   const [subjectName, setSubjectName] = useState('Operating Systems');
   const [subjectThreshold, setSubjectThreshold] = useState(75);
-  const [attendanceForm, setAttendanceForm] = useState({
-    attended: true,
-    date: new Date().toISOString().slice(0, 10),
-    type: 'LECTURE',
-    remarks: 'Logged from dashboard',
-  });
 
   useEffect(() => {
     if (token) {
@@ -57,13 +55,6 @@ function App() {
     await addSubject({ code: subjectCode, name: subjectName, threshold: subjectThreshold });
     setSubjectCode('');
     setSubjectName('');
-  }
-
-  async function handleLogAttendance(event: React.FormEvent) {
-    event.preventDefault();
-    if (!subjects[0]) return;
-    await addAttendance(subjects[0].id, attendanceForm);
-    await fetchDashboard();
   }
 
   if (!token || !user) {
@@ -235,20 +226,7 @@ function App() {
                   <button type="submit" className="w-full rounded-xl bg-emerald-500 px-3 py-2 text-sm font-medium text-slate-950">Add subject</button>
                 </form>
 
-                <form onSubmit={handleLogAttendance} className="mt-6 space-y-3">
-                  <label className="flex items-center justify-between text-sm text-slate-300">
-                    <span>Attended</span>
-                    <input type="checkbox" checked={attendanceForm.attended} onChange={(event) => setAttendanceForm((prev) => ({ ...prev, attended: event.target.checked }))} className="h-4 w-4" />
-                  </label>
-                  <input type="date" value={attendanceForm.date} onChange={(event) => setAttendanceForm((prev) => ({ ...prev, date: event.target.value }))} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white" />
-                  <select value={attendanceForm.type} onChange={(event) => setAttendanceForm((prev) => ({ ...prev, type: event.target.value }))} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white">
-                    <option value="LECTURE">Lecture</option>
-                    <option value="LAB">Lab</option>
-                    <option value="TUTORIAL">Tutorial</option>
-                  </select>
-                  <textarea value={attendanceForm.remarks} onChange={(event) => setAttendanceForm((prev) => ({ ...prev, remarks: event.target.value }))} rows={3} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white" />
-                  <button type="submit" className="w-full rounded-xl bg-cyan-500 px-3 py-2 text-sm font-medium text-slate-950">Log attendance</button>
-                </form>
+                <AttendanceLogger subjectId={subjects[0]?.id} />
               </div>
             </section>
           </main>
